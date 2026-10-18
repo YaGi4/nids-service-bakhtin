@@ -16,7 +16,7 @@ import hashlib
 import json
 import platform
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import joblib
@@ -88,7 +88,7 @@ def train(data_path: Path, out_dir: Path) -> dict:
     }
 
     metadata = {
-        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "model_version": "0.1.0",
         "seed": SEED,
         "data_file": data_path.name,
