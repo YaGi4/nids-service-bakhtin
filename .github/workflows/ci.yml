@@ -37,7 +37,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          load: true
           tags: ${{ env.IMAGE }}:${{ github.sha }}
       - uses: aquasecurity/trivy-action@v0.36.0
         name: Report all high and critical vulnerabilities
@@ -54,3 +54,5 @@ jobs:
           exit-code: '1'
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+      - name: Publish scanned image
+        run: docker push "$IMAGE:$GITHUB_SHA"
