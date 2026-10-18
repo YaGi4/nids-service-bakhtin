@@ -1,23 +1,42 @@
 # NIDS Service
 
+[![CI](https://github.com/YaGi4/nids-service-bakhtin/actions/workflows/ci.yml/badge.svg)](https://github.com/YaGi4/nids-service-bakhtin/actions/workflows/ci.yml)
+
 Сервис анализирует сетевые соединения и выявляет потенциальные угрозы. Модель Random Forest обучается на воспроизводимом учебном наборе, а FastAPI предоставляет эндпоинты `/health` и `/predict`.
 
 Сервис детектирования аномалий сетевого трафика. Учебный сквозной проект
 дисциплины «Инструментальные средства разработки инфокоммуникационных
 систем с ИИ».
 
-## Что здесь есть сейчас
+## Состав проекта
 
-Модель и HTTP-сервис — готовые. Всё остальное вы добавите сами по ходу курса:
+Репозиторий содержит модель, HTTP API, журнал предсказаний в PostgreSQL, контейнерную сборку и CI.
 
-| Цикл | Что добавляете | Чего пока нет в репозитории |
-|---|---|---|
-| 2 | история, ветки, PR | — |
-| 3 | воспроизводимое окружение | — |
-| 4 | контейнер | `Dockerfile`, `.dockerignore` |
-| 5 | журнал предсказаний в БД | схема, миграции |
-| 6 | стек одной командой | `compose.yaml`, `.env.example` |
-| 7 | автосборка и тесты в CI | `.github/workflows/` |
+Для запуска требуются Docker Desktop и Docker Compose. Локальный запуск через Python описан ниже.
+
+## Запуск стека в три команды
+
+```bash
+cp .env.example .env
+docker compose up -d --build --wait
+curl -s http://localhost:8000/health
+```
+
+Перед запуском замените `POSTGRES_PASSWORD` в `.env`. Сервис `db` хранит журнал в именованном томе и создаёт схему из `migrations/` на пустом томе. Сервис `api` ожидает готовности базы, а модель обучается при сборке образа. Документация API: <http://localhost:8000/docs>.
+
+`docker compose down` сохраняет том; `docker compose down -v` удаляет его вместе с журналом. SQL-скрипты в `/docker-entrypoint-initdb.d` выполняются только при первом создании тома. Для следующих изменений схемы требуется отдельный механизм миграций.
+
+| Переменная | Назначение |
+|---|---|
+| `POSTGRES_USER` | Пользователь базы |
+| `POSTGRES_PASSWORD` | Пароль базы; хранить только в `.env` |
+| `POSTGRES_DB` | Имя базы |
+| `API_PORT` | Порт API на хосте |
+| `DATABASE_URL` | Адрес PostgreSQL для локального запуска API; в Compose формируется автоматически |
+
+Для ручного запуска базы: `docker compose up -d db`. Миграции на уже созданной базе можно применить командой `for file in migrations/*.sql; do docker compose exec -T db psql -U nids -d nids < "$file"; done` с учётом значений пользователя и базы из `.env`. Для нагрузки: `python scripts/load.py --count 500`; аналитика: `docker compose exec -T db psql -U nids -d nids < sql/analytics.sql`.
+
+Для проверки трёх копий API без конфликта портов: `docker compose -f compose.yaml -f compose.scale.yaml up -d --scale api=3`. Этот режим снимает публикацию порта API на хосте; для внешнего доступа к нескольким копиям нужен прокси.
 
 Отсутствие этих файлов — не недоработка шаблона, а ваша программа на семестр.
 
