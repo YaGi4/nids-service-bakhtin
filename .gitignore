@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Артефакты обучения: модель и паспорт не версионируются в Git.
+# Почему -- см. лабораторную работу №1, раздел «Что Git фиксирует, а что нет».
+artifacts/*
+!artifacts/.gitkeep
+
+# Данные
+data/*.csv
+
+# Секреты
+.env
+
+# Инструменты
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
