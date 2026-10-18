@@ -16,11 +16,13 @@ import json
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import joblib
 from fastapi import FastAPI, HTTPException
 
+from nids.db import save_prediction
 from nids.features import to_frame
 from nids.schemas import Connection, Health, Prediction
 
@@ -68,7 +70,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="NIDS service",
-    description="Детектирование аномалий сетевого трафика",
+    description="Классификация сетевых соединений и обнаружение аномалий",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -100,12 +102,17 @@ def predict(connection: Connection) -> Prediction:
             detail="модель не загружена; обучите её: python -m nids.train",
         )
 
-    frame = to_frame(connection.model_dump())
+    started = perf_counter()
+    record = connection.model_dump()
+    frame = to_frame(record)
     probability = float(model.predict_proba(frame)[0][1])
     label = "attack" if probability >= 0.5 else "normal"
 
-    return Prediction(
+    result = Prediction(
         prediction=label,
         probability=round(probability, 4),
         model_version=_model_version(),
     )
+    save_prediction(record, result.prediction, result.probability,
+                    result.model_version, (perf_counter() - started) * 1000)
+    return result
